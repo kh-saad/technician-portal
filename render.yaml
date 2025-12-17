@@ -1,0 +1,14 @@
+services:
+  - type: web
+    name: technician-portal
+    env: python
+    buildCommand: |
+      pip install -r requirements.txt
+    startCommand: |
+      python run.py
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.9.13
+    healthCheckPath: /
+    autoDeploy: true
+    plan: free
