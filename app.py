@@ -928,7 +928,14 @@ def favicon():
     """Serve favicon"""
     return send_from_directory(os.path.join(app.root_path, 'static'),
                                'favicon.ico', mimetype='image/vnd.microsoft.icon')
-
+    
+# Add database backup function to app.py
+@app.route('/admin/backup')
+def backup_db():
+    import shutil, datetime
+    backup_name = f"backup_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.db"
+    shutil.copy2('database.db', backup_name)
+    return send_file(backup_name, as_attachment=True)
 # =============== ERROR HANDLERS ===============
 
 @app.errorhandler(404)
