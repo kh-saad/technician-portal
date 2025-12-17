@@ -1,0 +1,991 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Technician Portal - Loyalty Points System</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- DataTables CSS -->
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
+    <style>
+        :root {
+            --primary-color: #4f46e5;
+            --secondary-color: #7c3aed;
+            --success-color: #10b981;
+            --warning-color: #f59e0b;
+            --danger-color: #ef4444;
+        }
+        
+        body {
+            background-color: #f8fafc;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        .sidebar {
+            background: linear-gradient(180deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            color: white;
+            min-height: 100vh;
+            position: fixed;
+            width: 280px;
+            box-shadow: 3px 0 20px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s;
+        }
+        
+        .main-content {
+            margin-left: 280px;
+            padding: 20px;
+            min-height: 100vh;
+        }
+        
+        .sidebar-header {
+            padding: 25px 20px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .user-profile {
+            text-align: center;
+            padding: 20px;
+        }
+        
+        .user-avatar {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 15px;
+            font-size: 32px;
+            color: white;
+        }
+        
+        .nav-link {
+            color: rgba(255, 255, 255, 0.8);
+            padding: 12px 20px;
+            margin: 5px 0;
+            border-left: 3px solid transparent;
+            transition: all 0.3s;
+        }
+        
+        .nav-link:hover, .nav-link.active {
+            color: white;
+            background: rgba(255, 255, 255, 0.1);
+            border-left-color: white;
+        }
+        
+        .nav-link i {
+            width: 20px;
+            margin-right: 10px;
+        }
+        
+        .stats-card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.08);
+            margin-bottom: 25px;
+            transition: transform 0.3s;
+        }
+        
+        .stats-card:hover {
+            transform: translateY(-5px);
+        }
+        
+        .points-badge {
+            background: linear-gradient(135deg, var(--success-color) 0%, #34d399 100%);
+            color: white;
+            padding: 8px 20px;
+            border-radius: 25px;
+            font-size: 24px;
+            font-weight: bold;
+            display: inline-block;
+        }
+        
+        .status-badge {
+            padding: 6px 15px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        
+        .status-pending { background: #fef3c7; color: #92400e; }
+        .status-approved { background: #d1fae5; color: #065f46; }
+        .status-rejected { background: #fee2e2; color: #991b1b; }
+        .status-cancelled { background: #e5e7eb; color: #374151; }
+        
+        .btn-upload {
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            color: white;
+            padding: 12px 30px;
+            border-radius: 10px;
+            font-weight: 600;
+            border: none;
+            transition: all 0.3s;
+        }
+        
+        .btn-upload:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(79, 70, 229, 0.3);
+        }
+        
+        .invoice-card {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 3px 15px rgba(0, 0, 0, 0.05);
+            border-left: 4px solid var(--primary-color);
+        }
+        
+        .page-header {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 30px;
+            box-shadow: 0 3px 15px rgba(0, 0, 0, 0.05);
+        }
+        
+        .upload-area {
+            border: 2px dashed #cbd5e1;
+            border-radius: 15px;
+            padding: 40px;
+            text-align: center;
+            background: #f8fafc;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .upload-area:hover {
+            border-color: var(--primary-color);
+            background: #f1f5f9;
+        }
+        
+        .upload-area i {
+            font-size: 48px;
+            color: #94a3b8;
+            margin-bottom: 15px;
+        }
+        
+        .file-preview {
+            max-width: 200px;
+            max-height: 200px;
+            border-radius: 10px;
+            margin: 10px auto;
+            display: block;
+        }
+        
+        @media (max-width: 768px) {
+            .sidebar {
+                margin-left: -280px;
+                width: 280px;
+            }
+            
+            .main-content {
+                margin-left: 0;
+            }
+            
+            .sidebar.active {
+                margin-left: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Sidebar -->
+    <div class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <h4 class="mb-0"><i class="fas fa-tools"></i> TechPortal</h4>
+            <small class="text-white-50">Loyalty Points System</small>
+        </div>
+        
+        <!-- User Profile -->
+        <div class="user-profile">
+            <div class="user-avatar">
+                {{ technician['name'][0].upper() }}
+            </div>
+            <h5 class="mb-1">{{ technician['name'] }}</h5>
+            <p class="text-white-50 mb-2">{{ technician['code'] }}</p>
+            <div class="points-badge">
+                {{ technician['points_balance'] }} pts
+            </div>
+        </div>
+        
+        <!-- Navigation -->
+        <div class="sidebar-menu">
+            <ul class="nav flex-column">
+                <li class="nav-item">
+                    <a class="nav-link active" href="#" data-page="dashboard">
+                        <i class="fas fa-tachometer-alt"></i> Dashboard
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="#" data-page="upload-invoice">
+                        <i class="fas fa-upload"></i> Upload Invoice
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="#" data-page="my-invoices">
+                        <i class="fas fa-file-invoice"></i> My Invoices
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="#" data-page="points-history">
+                        <i class="fas fa-history"></i> Points History
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="#" data-page="profile">
+                        <i class="fas fa-user-circle"></i> My Profile
+                    </a>
+                </li>
+                <li class="nav-item mt-4">
+                    <a class="nav-link text-warning" href="/technician/logout">
+                        <i class="fas fa-sign-out-alt"></i> Logout
+                    </a>
+                </li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content" id="mainContent">
+        <!-- Mobile Toggle Button -->
+        <button class="btn btn-primary d-lg-none mb-3" id="sidebarToggle">
+            <i class="fas fa-bars"></i>
+        </button>
+
+        <!-- Content Area -->
+        <div id="contentArea">
+            <!-- Dashboard Page (Default) -->
+            <div id="dashboardPage">
+                <!-- Welcome Header -->
+                <div class="page-header">
+                    <h2 class="mb-2">Welcome, {{ technician['name'] }}!</h2>
+                    <p class="text-muted">Track your points, upload invoices, and manage your loyalty account</p>
+                </div>
+
+                <!-- Quick Stats -->
+                <div class="row">
+                    <div class="col-md-3">
+                        <div class="stats-card">
+                            <div class="d-flex align-items-center">
+                                <div class="me-3">
+                                    <i class="fas fa-coins fa-2x text-success"></i>
+                                </div>
+                                <div>
+                                    <h3 class="mb-0">{{ technician['points_balance'] }}</h3>
+                                    <p class="text-muted mb-0">Points Balance</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-3">
+                        <div class="stats-card">
+                            <div class="d-flex align-items-center">
+                                <div class="me-3">
+                                    <i class="fas fa-file-invoice fa-2x text-primary"></i>
+                                </div>
+                                <div>
+                                    <h3 class="mb-0">{{ total_invoices }}</h3>
+                                    <p class="text-muted mb-0">Total Invoices</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-3">
+                        <div class="stats-card">
+                            <div class="d-flex align-items-center">
+                                <div class="me-3">
+                                    <i class="fas fa-check-circle fa-2x text-success"></i>
+                                </div>
+                                <div>
+                                    <h3 class="mb-0">{{ approved_invoices }}</h3>
+                                    <p class="text-muted mb-0">Approved</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-3">
+                        <div class="stats-card">
+                            <div class="d-flex align-items-center">
+                                <div class="me-3">
+                                    <i class="fas fa-clock fa-2x text-warning"></i>
+                                </div>
+                                <div>
+                                    <h3 class="mb-0">{{ pending_invoices }}</h3>
+                                    <p class="text-muted mb-0">Pending</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Quick Actions -->
+                <div class="row mb-4">
+                    <div class="col-12">
+                        <div class="stats-card">
+                            <h5 class="mb-3"><i class="fas fa-bolt me-2"></i>Quick Actions</h5>
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <button class="btn btn-upload w-100 mb-2" data-page="upload-invoice">
+                                        <i class="fas fa-upload me-2"></i>Upload New Invoice
+                                    </button>
+                                </div>
+                                <div class="col-md-4">
+                                    <a href="#" class="btn btn-outline-primary w-100 mb-2" data-page="my-invoices">
+                                        <i class="fas fa-list me-2"></i>View All Invoices
+                                    </a>
+                                </div>
+                                <div class="col-md-4">
+                                    <a href="#" class="btn btn-outline-success w-100 mb-2" data-page="points-history">
+                                        <i class="fas fa-chart-line me-2"></i>Points History
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Recent Invoices -->
+                <div class="stats-card">
+                    <h5 class="mb-3"><i class="fas fa-history me-2"></i>Recent Invoices</h5>
+                    {% if invoices %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Invoice #</th>
+                                    <th>Date</th>
+                                    <th>Amount (₹)</th>
+                                    <th>Status</th>
+                                    <th>Points</th>
+                                    <th>Uploaded</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for invoice in invoices[:5] %}
+                                <tr>
+                                    <td><strong>{{ invoice['invoice_number'] }}</strong></td>
+                                    <td>{{ invoice['invoice_date'] }}</td>
+                                    <td>₹{{ "%.2f"|format(invoice['invoice_amount']) }}</td>
+                                    <td>
+                                        <span class="status-badge status-{{ invoice['status'] }}">
+                                            {{ invoice['status']|upper }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        {% if invoice['points_awarded'] > 0 %}
+                                        <span class="badge bg-success">{{ invoice['points_awarded'] }} pts</span>
+                                        {% else %}-{% endif %}
+                                    </td>
+                                    <td>{{ invoice['uploaded_at'][:10] if invoice['uploaded_at'] else '' }}</td>
+                                    <td>
+                                        <button class="btn btn-sm btn-outline-info view-invoice" 
+                                                data-id="{{ invoice['id'] }}">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-4">
+                        <i class="fas fa-file-invoice fa-3x text-muted mb-3"></i>
+                        <h5>No invoices yet</h5>
+                        <p class="text-muted">Upload your first invoice to start earning points!</p>
+                        <button class="btn btn-upload" data-page="upload-invoice">
+                            <i class="fas fa-upload me-2"></i>Upload First Invoice
+                        </button>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Upload Invoice Page (Hidden by default) -->
+            <div id="uploadInvoicePage" style="display: none;">
+                <div class="page-header">
+                    <h2><i class="fas fa-upload me-2"></i>Upload Invoice</h2>
+                    <p class="text-muted">Upload purchase invoices to earn loyalty points</p>
+                </div>
+
+                <div class="stats-card">
+                    <form id="invoiceUploadForm" enctype="multipart/form-data">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Invoice Number *</label>
+                                <input type="text" class="form-control" name="invoice_number" required 
+                                       placeholder="INV-2023-001">
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <label class="form-label">Invoice Date *</label>
+                                <input type="date" class="form-control" name="invoice_date" required>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <label class="form-label">Amount (₹) *</label>
+                                <input type="number" step="0.01" class="form-control" name="invoice_amount" required 
+                                       placeholder="1000.00" min="1">
+                                <small class="text-muted">Minimum ₹100 for points eligibility</small>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <label class="form-label">Vendor/Shop Name</label>
+                                <input type="text" class="form-control" name="vendor_name" 
+                                       placeholder="ABC Electronics Store">
+                            </div>
+                            
+                            <div class="col-12">
+                                <label class="form-label">Items Description *</label>
+                                <textarea class="form-control" name="items_description" rows="3" required 
+                                          placeholder="Describe purchased items (e.g., 2× AC Filters, 1× Thermostat...)"></textarea>
+                            </div>
+                            
+                            <div class="col-12">
+                                <label class="form-label">Upload Invoice Image/PDF *</label>
+                                <div class="upload-area" id="uploadArea">
+                                    <i class="fas fa-cloud-upload-alt"></i>
+                                    <h5>Drag & drop your file here</h5>
+                                    <p class="text-muted">or click to browse (Max: 5MB)</p>
+                                    <p class="text-muted">Accepted: JPG, PNG, PDF</p>
+                                    <input type="file" class="d-none" name="invoice_image" 
+                                           accept=".jpg,.jpeg,.png,.pdf" id="fileInput">
+                                </div>
+                                <div id="filePreview" class="text-center mt-3"></div>
+                            </div>
+                            
+                            <div class="col-12">
+                                <div class="alert alert-info">
+                                    <h6><i class="fas fa-info-circle me-2"></i>Points Calculation:</h6>
+                                    <ul class="mb-0">
+                                        <li>₹100 = 10 points</li>
+                                        <li>₹500 = 50 points + 10 bonus</li>
+                                        <li>₹1000 = 100 points + 20 bonus</li>
+                                        <li>Admin review required before points are awarded</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mt-4">
+                            <button type="submit" class="btn btn-upload btn-lg">
+                                <i class="fas fa-upload me-2"></i>Submit for Review
+                            </button>
+                            <a href="#" class="btn btn-outline-secondary ms-2" data-page="dashboard">
+                                <i class="fas fa-arrow-left me-2"></i>Back to Dashboard
+                            </a>
+                        </div>
+                    </form>
+                    
+                    <!-- Messages -->
+                    <div class="alert alert-success mt-3" id="uploadSuccess" style="display: none;"></div>
+                    <div class="alert alert-danger mt-3" id="uploadError" style="display: none;"></div>
+                </div>
+            </div>
+
+            <!-- My Invoices Page (Hidden by default) -->
+            <div id="myInvoicesPage" style="display: none;">
+                <div class="page-header">
+                    <h2><i class="fas fa-file-invoice me-2"></i>My Invoices</h2>
+                    <p class="text-muted">View all your submitted invoices and their status</p>
+                </div>
+
+                {% if invoices %}
+                <div class="stats-card">
+                    <div class="table-responsive">
+                        <table class="table table-hover" id="invoicesTable">
+                            <thead>
+                                <tr>
+                                    <th>Invoice #</th>
+                                    <th>Date</th>
+                                    <th>Amount</th>
+                                    <th>Vendor</th>
+                                    <th>Status</th>
+                                    <th>Points</th>
+                                    <th>Uploaded</th>
+                                    <th>Reviewed</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for invoice in invoices %}
+                                <tr>
+                                    <td><strong>{{ invoice['invoice_number'] }}</strong></td>
+                                    <td>{{ invoice['invoice_date'] }}</td>
+                                    <td>₹{{ "%.2f"|format(invoice['invoice_amount']) }}</td>
+                                    <td>{{ invoice['vendor_name'] or '-' }}</td>
+                                    <td>
+                                        <span class="status-badge status-{{ invoice['status'] }}">
+                                            {{ invoice['status']|upper }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        {% if invoice['points_awarded'] > 0 %}
+                                        <span class="badge bg-success">{{ invoice['points_awarded'] }} pts</span>
+                                        {% else %}-{% endif %}
+                                    </td>
+                                    <td>{{ invoice['uploaded_at'][:10] if invoice['uploaded_at'] else '' }}</td>
+                                    <td>{{ invoice['reviewed_at'][:10] if invoice['reviewed_at'] else '-' }}</td>
+                                    <td>
+                                        <div class="btn-group">
+                                            <button class="btn btn-sm btn-outline-info view-invoice" 
+                                                    data-id="{{ invoice['id'] }}">
+                                                <i class="fas fa-eye"></i>
+                                            </button>
+                                            {% if invoice['status'] == 'pending' %}
+                                            <button class="btn btn-sm btn-outline-warning cancel-invoice" 
+                                                    data-id="{{ invoice['id'] }}">
+                                                <i class="fas fa-times"></i>
+                                            </button>
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                {% else %}
+                <div class="stats-card">
+                    <div class="text-center py-5">
+                        <i class="fas fa-file-invoice fa-3x text-muted mb-3"></i>
+                        <h5>No invoices found</h5>
+                        <p class="text-muted">You haven't uploaded any invoices yet</p>
+                        <button class="btn btn-upload" data-page="upload-invoice">
+                            <i class="fas fa-upload me-2"></i>Upload Your First Invoice
+                        </button>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Points History Page (Hidden by default) -->
+            <div id="pointsHistoryPage" style="display: none;">
+                <div class="page-header">
+                    <h2><i class="fas fa-history me-2"></i>Points History</h2>
+                    <p class="text-muted">Track all your points transactions</p>
+                </div>
+
+                {% if points_history %}
+                <div class="stats-card">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Date & Time</th>
+                                    <th>Description</th>
+                                    <th>Invoice #</th>
+                                    <th>Points Change</th>
+                                    <th>Balance After</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for point in points_history %}
+                                <tr>
+                                    <td>{{ point['transaction_date'][:16] if point['transaction_date'] else '' }}</td>
+                                    <td>{{ point['description'] }}</td>
+                                    <td>
+                                        {% if point['invoice_id'] %}
+                                        <span class="badge bg-primary">#{{ point['invoice_id'] }}</span>
+                                        {% else %}-{% endif %}
+                                    </td>
+                                    <td>
+                                        <span class="badge {% if point['points_change'] > 0 %}bg-success{% else %}bg-danger{% endif %}">
+                                            {% if point['points_change'] > 0 %}+{% endif %}{{ point['points_change'] }}
+                                        </span>
+                                    </td>
+                                    <td><strong>{{ point['balance_after'] }}</strong></td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                {% else %}
+                <div class="stats-card">
+                    <div class="text-center py-5">
+                        <i class="fas fa-coins fa-3x text-muted mb-3"></i>
+                        <h5>No points history</h5>
+                        <p class="text-muted">Your points transactions will appear here</p>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Profile Page (Hidden by default) -->
+            <div id="profilePage" style="display: none;">
+                <div class="page-header">
+                    <h2><i class="fas fa-user-circle me-2"></i>My Profile</h2>
+                    <p class="text-muted">View and update your profile information</p>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="stats-card">
+                            <div class="text-center">
+                                <div class="user-avatar" style="width: 120px; height: 120px; font-size: 48px; margin: 0 auto 20px;">
+                                    {{ technician['name'][0].upper() }}
+                                </div>
+                                <h4>{{ technician['name'] }}</h4>
+                                <p class="text-muted">{{ technician['code'] }}</p>
+                                <div class="points-badge" style="font-size: 28px; padding: 10px 30px;">
+                                    {{ technician['points_balance'] }} pts
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-8">
+                        <div class="stats-card">
+                            <h5 class="mb-4">Profile Details</h5>
+                            <table class="table table-borderless">
+                                <tr>
+                                    <td width="30%"><strong>Full Name:</strong></td>
+                                    <td>{{ technician['name'] }}</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Username:</strong></td>
+                                    <td>{{ technician['username'] }}</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Phone:</strong></td>
+                                    <td>{{ technician['phone'] }}</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Loyalty Code:</strong></td>
+                                    <td><span class="badge bg-primary">{{ technician['code'] }}</span></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Email:</strong></td>
+                                    <td>{{ technician['email'] or 'Not provided' }}</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Status:</strong></td>
+                                    <td><span class="badge bg-success">{{ technician['status'] }}</span></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Registration Date:</strong></td>
+                                    <td>{{ technician['registration_date'][:10] if technician['registration_date'] else 'N/A' }}</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Last Login:</strong></td>
+                                    <td>{{ technician['last_login'][:19] if technician['last_login'] else 'Never' }}</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Total Invoices:</strong></td>
+                                    <td>{{ total_invoices }}</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Approved Invoices:</strong></td>
+                                    <td>{{ approved_invoices }}</td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Invoice Details Modal -->
+    <div class="modal fade" id="invoiceModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Invoice Details</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" id="invoiceModalBody">
+                    Loading...
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript Libraries -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+
+    <script>
+        // Global variables
+        let currentPage = 'dashboard';
+
+        // Initialize on page load
+        $(document).ready(function() {
+            initializeDataTable();
+            setupEventListeners();
+            setupFileUpload();
+            
+            // Set today's date as default for invoice date
+            const today = new Date().toISOString().split('T')[0];
+            $('input[name="invoice_date"]').val(today);
+        });
+
+        function initializeDataTable() {
+            if ($('#invoicesTable').length) {
+                $('#invoicesTable').DataTable({
+                    order: [[6, 'desc']],
+                    pageLength: 10,
+                    language: {
+                        search: "_INPUT_",
+                        searchPlaceholder: "Search invoices..."
+                    }
+                });
+            }
+        }
+
+        function setupEventListeners() {
+            // Sidebar toggle for mobile
+            $('#sidebarToggle').click(function() {
+                $('#sidebar').toggleClass('active');
+            });
+
+            // Navigation between pages
+            $('.nav-link[data-page], .btn[data-page], a[data-page]').click(function(e) {
+                e.preventDefault();
+                const page = $(this).data('page');
+                navigateToPage(page);
+            });
+
+            // View invoice details
+            $(document).on('click', '.view-invoice', function() {
+                const invoiceId = $(this).data('id');
+                viewInvoiceDetails(invoiceId);
+            });
+
+            // Cancel invoice
+            $(document).on('click', '.cancel-invoice', function() {
+                const invoiceId = $(this).data('id');
+                cancelInvoice(invoiceId);
+            });
+
+            // Form submission
+            $('#invoiceUploadForm').submit(function(e) {
+                e.preventDefault();
+                uploadInvoice();
+            });
+        }
+
+        function setupFileUpload() {
+            const uploadArea = $('#uploadArea');
+            const fileInput = $('#fileInput');
+            const preview = $('#filePreview');
+
+            uploadArea.click(function() {
+                fileInput.click();
+            });
+
+            fileInput.change(function(e) {
+                const file = e.target.files[0];
+                if (file) {
+                    // Validate file size (5MB max)
+                    if (file.size > 5 * 1024 * 1024) {
+                        alert('File too large! Maximum size is 5MB.');
+                        fileInput.val('');
+                        return;
+                    }
+
+                    // Validate file type
+                    const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'application/pdf'];
+                    if (!validTypes.includes(file.type)) {
+                        alert('Invalid file type! Please upload JPG, PNG, or PDF.');
+                        fileInput.val('');
+                        return;
+                    }
+
+                    // Show preview
+                    if (file.type.includes('image')) {
+                        const reader = new FileReader();
+                        reader.onload = function(e) {
+                            preview.html(`<img src="${e.target.result}" class="file-preview" alt="Preview">`);
+                        };
+                        reader.readAsDataURL(file);
+                    } else if (file.type === 'application/pdf') {
+                        preview.html(`
+                            <div class="alert alert-info">
+                                <i class="fas fa-file-pdf fa-3x mb-2"></i><br>
+                                <strong>${file.name}</strong><br>
+                                <small>PDF Document</small>
+                            </div>
+                        `);
+                    }
+                }
+            });
+
+            // Drag and drop
+            uploadArea.on('dragover', function(e) {
+                e.preventDefault();
+                uploadArea.css('border-color', '#4f46e5');
+                uploadArea.css('background', '#f1f5f9');
+            });
+
+            uploadArea.on('dragleave', function(e) {
+                e.preventDefault();
+                uploadArea.css('border-color', '#cbd5e1');
+                uploadArea.css('background', '#f8fafc');
+            });
+
+            uploadArea.on('drop', function(e) {
+                e.preventDefault();
+                uploadArea.css('border-color', '#cbd5e1');
+                uploadArea.css('background', '#f8fafc');
+                
+                const file = e.originalEvent.dataTransfer.files[0];
+                if (file) {
+                    const dataTransfer = new DataTransfer();
+                    dataTransfer.items.add(file);
+                    fileInput[0].files = dataTransfer.files;
+                    fileInput.trigger('change');
+                }
+            });
+        }
+
+        function navigateToPage(page) {
+            // Hide all pages
+            $('#dashboardPage, #uploadInvoicePage, #myInvoicesPage, #pointsHistoryPage, #profilePage').hide();
+            
+            // Show selected page
+            $(`#${page}Page`).show();
+            
+            // Update active nav link
+            $('.nav-link').removeClass('active');
+            $(`.nav-link[data-page="${page}"]`).addClass('active');
+            
+            currentPage = page;
+            
+            // Close sidebar on mobile
+            if ($(window).width() < 768) {
+                $('#sidebar').removeClass('active');
+            }
+        }
+
+        function uploadInvoice() {
+            const form = $('#invoiceUploadForm')[0];
+            const formData = new FormData(form);
+            
+            // Show loading
+            const submitBtn = $('#invoiceUploadForm button[type="submit"]');
+            const originalText = submitBtn.html();
+            submitBtn.html('<i class="fas fa-spinner fa-spin me-2"></i>Uploading...');
+            submitBtn.prop('disabled', true);
+            
+            // Hide messages
+            $('#uploadSuccess, #uploadError').hide();
+            
+            $.ajax({
+                url: '/api/upload-invoice',
+                method: 'POST',
+                data: formData,
+                processData: false,
+                contentType: false,
+                success: function(response) {
+                    if (response.success) {
+                        $('#uploadSuccess').html(`
+                            <i class="fas fa-check-circle me-2"></i>
+                            <strong>Success!</strong> ${response.message}<br>
+                            <small>Invoice #${response.invoice_number} has been submitted for review.</small>
+                        `).show();
+                        
+                        // Reset form
+                        form.reset();
+                        $('#filePreview').empty();
+                        const today = new Date().toISOString().split('T')[0];
+                        $('input[name="invoice_date"]').val(today);
+                        
+                        // Navigate to invoices page after 2 seconds
+                        setTimeout(() => {
+                            navigateToPage('my-invoices');
+                            location.reload();
+                        }, 2000);
+                    } else {
+                        $('#uploadError').text(response.message).show();
+                    }
+                },
+                error: function() {
+                    $('#uploadError').text('Network error. Please try again.').show();
+                },
+                complete: function() {
+                    submitBtn.html(originalText);
+                    submitBtn.prop('disabled', false);
+                }
+            });
+        }
+
+        function viewInvoiceDetails(invoiceId) {
+            $.ajax({
+                url: `/api/invoice/${invoiceId}`,
+                method: 'GET',
+                success: function(response) {
+                    if (response.success) {
+                        const invoice = response.invoice;
+                        let modalHtml = `
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <h6>Invoice Details</h6>
+                                    <table class="table table-sm">
+                                        <tr><td><strong>Invoice #:</strong></td><td>${invoice.invoice_number}</td></tr>
+                                        <tr><td><strong>Date:</strong></td><td>${invoice.invoice_date}</td></tr>
+                                        <tr><td><strong>Amount:</strong></td><td>₹${invoice.invoice_amount.toFixed(2)}</td></tr>
+                                        <tr><td><strong>Vendor:</strong></td><td>${invoice.vendor_name || '-'}</td></tr>
+                                        <tr><td><strong>Status:</strong></td><td><span class="status-badge status-${invoice.status}">${invoice.status.toUpperCase()}</span></td></tr>
+                                    </table>
+                                </div>
+                                <div class="col-md-6">
+                                    <h6>Points Information</h6>
+                                    <table class="table table-sm">
+                                        <tr><td><strong>Points Awarded:</strong></td><td>${invoice.points_awarded > 0 ? `<span class="badge bg-success">${invoice.points_awarded} pts</span>` : '-'}</td></tr>
+                                        <tr><td><strong>Uploaded:</strong></td><td>${invoice.uploaded_at}</td></tr>
+                                        <tr><td><strong>Reviewed:</strong></td><td>${invoice.reviewed_at || 'Pending'}</td></tr>
+                                        ${invoice.admin_notes ? `<tr><td><strong>Admin Notes:</strong></td><td>${invoice.admin_notes}</td></tr>` : ''}
+                                    </table>
+                                </div>
+                            </div>
+                            <div class="row mt-3">
+                                <div class="col-12">
+                                    <h6>Items Description</h6>
+                                    <p>${invoice.items_description || 'No description provided'}</p>
+                                </div>
+                            </div>`;
+                        
+                        $('#invoiceModalBody').html(modalHtml);
+                        $('#invoiceModal').modal('show');
+                    } else {
+                        alert('Error loading invoice details');
+                    }
+                }
+            });
+        }
+
+        function cancelInvoice(invoiceId) {
+            if (confirm('Are you sure you want to cancel this invoice? This action cannot be undone.')) {
+                $.ajax({
+                    url: `/api/cancel-invoice/${invoiceId}`,
+                    method: 'POST',
+                    success: function(response) {
+                        if (response.success) {
+                            alert('Invoice cancelled successfully');
+                            location.reload();
+                        } else {
+                            alert(response.message);
+                        }
+                    }
+                });
+            }
+        }
+    </script>
+</body>
+</html>
