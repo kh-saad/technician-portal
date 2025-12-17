@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Upload</title>
+</head>
+<body>
+    <h2>Test File Upload</h2>
+    <form action="/api/upload-invoice" method="POST" enctype="multipart/form-data">
+        <input type="text" name="invoice_number" placeholder="Invoice Number" required><br><br>
+        <input type="date" name="invoice_date" required><br><br>
+        <input type="number" name="invoice_amount" placeholder="Amount" required><br><br>
+        <input type="text" name="vendor_name" placeholder="Vendor"><br><br>
+        <textarea name="items_description" placeholder="Description" required></textarea><br><br>
+        <input type="file" name="invoice_image" required><br><br>
+        <button type="submit">Upload</button>
+    </form>
+</body>
+</html>
