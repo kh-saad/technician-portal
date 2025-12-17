@@ -1,0 +1,708 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Admin Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
+    <style>
+        body {
+            background-color: #f5f7fa;
+        }
+        .sidebar {
+            background: linear-gradient(180deg, #4f46e5 0%, #7c3aed 100%);
+            color: white;
+            min-height: 100vh;
+        }
+        .main-content {
+            padding: 20px;
+        }
+        .nav-link {
+            color: white;
+            padding: 12px 15px;
+            margin: 5px 10px;
+            border-radius: 8px;
+        }
+        .nav-link:hover {
+            background: rgba(255,255,255,0.1);
+        }
+        .stat-card {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        .invoice-card {
+            border-left: 4px solid;
+            transition: transform 0.2s;
+        }
+        .invoice-card:hover {
+            transform: translateY(-3px);
+        }
+        .status-pending { border-left-color: #ffc107; }
+        .status-approved { border-left-color: #28a745; }
+        .status-rejected { border-left-color: #dc3545; }
+        .badge-pending { background-color: #ffc107; }
+        .badge-approved { background-color: #28a745; }
+        .badge-rejected { background-color: #dc3545; }
+        .action-btn {
+            width: 35px;
+            height: 35px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            margin: 2px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar -->
+            <div class="col-md-3 col-lg-2 sidebar p-0">
+                <div class="p-4 text-center">
+                    <h4><i class="fas fa-user-shield"></i> Admin Panel</h4>
+                    <hr class="bg-white">
+                    <p class="mb-0 small">Welcome, {{ admin_username }}</p>
+                </div>
+                
+                <nav class="nav flex-column">
+                    <a class="nav-link" href="#dashboard">
+                        <i class="fas fa-tachometer-alt"></i> Dashboard
+                    </a>
+                    <a class="nav-link" href="#technicians">
+                        <i class="fas fa-users"></i> Technicians
+                    </a>
+                    <a class="nav-link active" href="#invoices">
+                        <i class="fas fa-file-invoice"></i> Invoices
+                    </a>
+                    <a class="nav-link" href="#rewards">
+                        <i class="fas fa-gift"></i> Rewards
+                    </a>
+                    <a class="nav-link" href="/admin/logout">
+                        <i class="fas fa-sign-out-alt"></i> Logout
+                    </a>
+                </nav>
+            </div>
+            
+            <!-- Main Content -->
+            <div class="col-md-9 col-lg-10 main-content">
+                <!-- Dashboard Stats -->
+                <div id="dashboard" class="mb-5">
+                    <h2 class="mb-4">
+                        <i class="fas fa-tachometer-alt"></i> Dashboard Overview
+                    </h2>
+                    
+                    <div class="row mb-4">
+                        <div class="col-md-3">
+                            <div class="stat-card">
+                                <h1 class="text-primary">{{ total_tech }}</h1>
+                                <p>Total Technicians</p>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="stat-card">
+                                <h1 class="text-success">{{ total_invoices }}</h1>
+                                <p>Total Invoices</p>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="stat-card">
+                                <h1 class="text-warning">{{ pending_invoices }}</h1>
+                                <p>Pending Invoices</p>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="stat-card">
+                                <h1 class="text-info">₹{{ "%.2f"|format(total_amount) }}</h1>
+                                <p>Total Amount</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Pending Invoices Section -->
+                <div id="invoices" class="mb-5">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h3><i class="fas fa-file-invoice-dollar"></i> Pending Invoices</h3>
+                        <div class="btn-group">
+                            <button class="btn btn-outline-primary" onclick="filterInvoices('all')">All</button>
+                            <button class="btn btn-outline-warning" onclick="filterInvoices('pending')">Pending</button>
+                            <button class="btn btn-outline-success" onclick="filterInvoices('approved')">Approved</button>
+                            <button class="btn btn-outline-danger" onclick="filterInvoices('rejected')">Rejected</button>
+                        </div>
+                    </div>
+                    
+                    {% if invoices %}
+                    <div class="table-responsive">
+                        <table class="table table-hover" id="invoicesTable">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Technician</th>
+                                    <th>Invoice #</th>
+                                    <th>Date</th>
+                                    <th>Amount</th>
+                                    <th>Status</th>
+                                    <th>File</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for invoice in invoices %}
+                                <tr class="invoice-card status-{{ invoice['status'] }}">
+                                    <td>{{ invoice['id'] }}</td>
+                                    <td>
+                                        <strong>{{ invoice['tech_name'] }}</strong><br>
+                                        <small class="text-muted">{{ invoice['tech_code'] }}</small>
+                                    </td>
+                                    <td><code>{{ invoice['invoice_number'] }}</code></td>
+                                    <td>{{ invoice['invoice_date'] }}</td>
+                                    <td>₹{{ "%.2f"|format(invoice['invoice_amount']) }}</td>
+                                    <td>
+                                        {% if invoice['status'] == 'approved' %}
+                                            <span class="badge badge-approved">Approved</span>
+                                        {% elif invoice['status'] == 'rejected' %}
+                                            <span class="badge badge-rejected">Rejected</span>
+                                        {% else %}
+                                            <span class="badge badge-pending">Pending</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <a href="/uploads/{{ invoice['file_path'] }}" target="_blank"
+                                           class="btn btn-sm btn-outline-info action-btn"
+                                           title="View Invoice">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                    </td>
+                                    <td>
+                                        {% if invoice['status'] == 'pending' %}
+                                            <button onclick="approveInvoice({{ invoice['id'] }})"
+                                                    class="btn btn-sm btn-success action-btn"
+                                                    title="Approve Invoice">
+                                                <i class="fas fa-check"></i>
+                                            </button>
+                                            <button onclick="showRejectModal({{ invoice['id'] }})"
+                                                    class="btn btn-sm btn-danger action-btn"
+                                                    title="Reject Invoice">
+                                                <i class="fas fa-times"></i>
+                                            </button>
+                                            <button onclick="showAddPointsModal({{ invoice['id'] }}, {{ invoice['invoice_amount'] }})"
+                                                    class="btn btn-sm btn-warning action-btn"
+                                                    title="Add Custom Points">
+                                                <i class="fas fa-star"></i>
+                                            </button>
+                                        {% elif invoice['status'] == 'approved' %}
+                                            <span class="text-success">
+                                                <i class="fas fa-check-circle"></i> Approved
+                                            </span>
+                                            <br>
+                                            <small class="text-muted">
+                                                Points: {{ invoice['points_awarded'] or 0 }}
+                                            </small>
+                                        {% else %}
+                                            <span class="text-danger">
+                                                <i class="fas fa-times-circle"></i> Rejected
+                                            </span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-5">
+                        <i class="fas fa-file-invoice fa-4x text-muted mb-3"></i>
+                        <h4>No invoices yet</h4>
+                        <p class="text-muted">Invoices will appear here when technicians upload them</p>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <!-- Technicians Section -->
+                <div id="technicians" class="mb-5">
+                    <h3 class="mb-4"><i class="fas fa-users"></i> All Technicians</h3>
+                    
+                    {% if technicians %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Name</th>
+                                    <th>Phone</th>
+                                    <th>Code</th>
+                                    <th>Points</th>
+                                    <th>Invoices</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for tech in technicians %}
+                                <tr>
+                                    <td>{{ tech['id'] }}</td>
+                                    <td>
+                                        <strong>{{ tech['name'] }}</strong><br>
+                                        <small>{{ tech['email'] or 'No email' }}</small>
+                                    </td>
+                                    <td>{{ tech['phone'] }}</td>
+                                    <td><span class="badge bg-primary">{{ tech['code'] }}</span></td>
+                                    <td>
+                                        <span class="badge bg-success">{{ tech['points_balance'] }} pts</span>
+                                    </td>
+                                    <td>
+                                        {% set tech_invoices = [] %}
+                                        {% for inv in invoices %}
+                                            {% if inv['technician_id'] == tech['id'] %}
+                                                {% set _ = tech_invoices.append(inv) %}
+                                            {% endif %}
+                                        {% endfor %}
+                                        {{ tech_invoices|length }}
+                                    </td>
+                                    <td>
+                                        {% if tech['status'] == 'active' %}
+                                            <span class="badge bg-success">Active</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">Inactive</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <button onclick="sendWhatsApp('{{ tech['phone'] }}', '{{ tech['name'] }}')"
+                                                class="btn btn-sm btn-success action-btn"
+                                                title="Send WhatsApp">
+                                            <i class="fab fa-whatsapp"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <!-- Rewards Section -->
+                <div id="rewards" class="mb-5">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h3><i class="fas fa-gift"></i> Rewards Management</h3>
+                        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addRewardModal">
+                            <i class="fas fa-plus"></i> Add Reward
+                        </button>
+                    </div>
+                    
+                    <div class="row" id="rewardsList">
+                        <div class="col-12">
+                            <div class="alert alert-info">
+                                <i class="fas fa-info-circle"></i>
+                                Rewards system coming soon! You can add rewards using the "Add Reward" button.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modals -->
+    <!-- Reject Invoice Modal -->
+    <div class="modal fade" id="rejectModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-danger text-white">
+                    <h5 class="modal-title">
+                        <i class="fas fa-times-circle"></i> Reject Invoice
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" id="rejectInvoiceId">
+                    <div class="mb-3">
+                        <label class="form-label">Reason for Rejection</label>
+                        <textarea class="form-control" id="rejectReason" rows="3" 
+                                  placeholder="Enter reason for rejection..."></textarea>
+                    </div>
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="checkbox" id="notifyTechnician">
+                        <label class="form-check-label" for="notifyTechnician">
+                            Notify technician via WhatsApp
+                        </label>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-danger" onclick="confirmReject()">
+                        <i class="fas fa-times"></i> Reject Invoice
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Points Modal -->
+    <div class="modal fade" id="addPointsModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-warning text-white">
+                    <h5 class="modal-title">
+                        <i class="fas fa-star"></i> Add Points
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" id="pointsInvoiceId">
+                    <input type="hidden" id="pointsTechId">
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Invoice Amount</label>
+                        <div class="input-group">
+                            <span class="input-group-text">₹</span>
+                            <input type="number" class="form-control" id="invoiceAmount" readonly>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Default Points Calculation</label>
+                        <div class="alert alert-info">
+                            <small>
+                                <strong>Formula:</strong><br>
+                                • Base: Amount ÷ 10<br>
+                                • Bonus: +10 for ₹500+, +20 for ₹1000+<br>
+                                • Minimum: ₹100 required
+                            </small>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Custom Points</label>
+                        <input type="number" class="form-control" id="customPoints" 
+                               min="10" max="1000" placeholder="Enter custom points">
+                        <small class="text-muted">Or use default calculation above</small>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Reason/Remarks</label>
+                        <input type="text" class="form-control" id="pointsReason" 
+                               placeholder="e.g., Excellent service, Quick completion">
+                    </div>
+                    
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="sendPointsNotification" checked>
+                        <label class="form-check-label" for="sendPointsNotification">
+                            Notify technician via WhatsApp
+                        </label>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-warning" onclick="approveWithPoints()">
+                        <i class="fas fa-check"></i> Approve & Add Points
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Reward Modal -->
+    <div class="modal fade" id="addRewardModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title">
+                        <i class="fas fa-gift"></i> Add New Reward
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="rewardForm">
+                        <div class="mb-3">
+                            <label class="form-label">Reward Name</label>
+                            <input type="text" class="form-control" name="name" required>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Description</label>
+                            <textarea class="form-control" name="description" rows="2"></textarea>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Points Required</label>
+                                <input type="number" class="form-control" name="points_required" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Category</label>
+                                <select class="form-select" name="category">
+                                    <option value="gift_card">Gift Card</option>
+                                    <option value="cash_bonus">Cash Bonus</option>
+                                    <option value="voucher">Voucher</option>
+                                    <option value="product">Product</option>
+                                    <option value="experience">Experience</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Stock Quantity</label>
+                                <input type="number" class="form-control" name="stock" value="1">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Expiry Date</label>
+                                <input type="date" class="form-control" name="expiry_date">
+                            </div>
+                        </div>
+                        
+                        <div class="form-check mb-3">
+                            <input class="form-check-input" type="checkbox" name="is_active" checked>
+                            <label class="form-check-label">
+                                Active (Available for redemption)
+                            </label>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" onclick="saveReward()">
+                        <i class="fas fa-save"></i> Save Reward
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Send WhatsApp Modal -->
+    <div class="modal fade" id="whatsappModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-success text-white">
+                    <h5 class="modal-title">
+                        <i class="fab fa-whatsapp"></i> Send WhatsApp Message
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" id="whatsappPhone">
+                    <div class="mb-3">
+                        <label class="form-label">To</label>
+                        <input type="text" class="form-control" id="whatsappTo" readonly>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Message Template</label>
+                        <select class="form-select" id="messageTemplate" onchange="loadTemplate()">
+                            <option value="">Custom Message</option>
+                            <option value="points_update">Points Update</option>
+                            <option value="invoice_approved">Invoice Approved</option>
+                            <option value="invoice_rejected">Invoice Rejected</option>
+                            <option value="reward_available">New Reward Available</option>
+                            <option value="monthly_bonus">Monthly Bonus</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Message</label>
+                        <textarea class="form-control" id="whatsappMessage" rows="5"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-success" onclick="sendWhatsAppMessage()">
+                        <i class="fab fa-whatsapp"></i> Send Message
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript Libraries -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
+    <script>
+        // Initialize DataTable
+        $(document).ready(function() {
+            $('#invoicesTable').DataTable({
+                pageLength: 10,
+                order: [[0, 'desc']]
+            });
+        });
+
+        // Calculate default points
+        function calculateDefaultPoints(amount) {
+            if (amount < 100) return 0;
+            let points = Math.floor(amount / 10);
+            if (amount >= 1000) points += 20;
+            else if (amount >= 500) points += 10;
+            return points;
+        }
+
+        // Show reject modal
+        function showRejectModal(invoiceId) {
+            $('#rejectInvoiceId').val(invoiceId);
+            $('#rejectModal').modal('show');
+        }
+
+        // Show add points modal
+        function showAddPointsModal(invoiceId, amount) {
+            $('#pointsInvoiceId').val(invoiceId);
+            $('#invoiceAmount').val(amount);
+            
+            const defaultPoints = calculateDefaultPoints(amount);
+            $('#customPoints').val(defaultPoints);
+            
+            $('#addPointsModal').modal('show');
+        }
+
+        // Approve invoice with points
+        function approveWithPoints() {
+            const invoiceId = $('#pointsInvoiceId').val();
+            const points = $('#customPoints').val();
+            const reason = $('#pointsReason').val() || 'Invoice approved';
+            const notify = $('#sendPointsNotification').is(':checked');
+            
+            const formData = new FormData();
+            formData.append('invoice_id', invoiceId);
+            formData.append('points', points);
+            formData.append('reason', reason);
+            formData.append('notify', notify);
+            
+            fetch('/admin/approve_invoice', {
+                method: 'POST',
+                body: new URLSearchParams({
+                    invoice_id: invoiceId,
+                    points: points,
+                    reason: reason,
+                    notify: notify
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert(data.message);
+                    location.reload();
+                } else {
+                    alert('Error: ' + data.message);
+                }
+            })
+            .catch(error => {
+                alert('Network error: ' + error);
+            });
+        }
+
+        // Quick approve invoice
+        function approveInvoice(invoiceId) {
+            if (confirm('Approve this invoice?')) {
+                fetch('/admin/quick_approve', {
+                    method: 'POST',
+                    body: new URLSearchParams({ invoice_id: invoiceId })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert(data.message);
+                        location.reload();
+                    } else {
+                        alert('Error: ' + data.message);
+                    }
+                });
+            }
+        }
+
+        // Confirm reject
+        function confirmReject() {
+            const invoiceId = $('#rejectInvoiceId').val();
+            const reason = $('#rejectReason').val();
+            const notify = $('#notifyTechnician').is(':checked');
+            
+            fetch('/admin/reject_invoice', {
+                method: 'POST',
+                body: new URLSearchParams({
+                    invoice_id: invoiceId,
+                    reason: reason,
+                    notify: notify
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert(data.message);
+                    location.reload();
+                } else {
+                    alert('Error: ' + data.message);
+                }
+            });
+        }
+
+        // Filter invoices by status
+        function filterInvoices(status) {
+            const table = $('#invoicesTable').DataTable();
+            if (status === 'all') {
+                table.search('').draw();
+            } else {
+                table.column(5).search(status).draw();
+            }
+        }
+
+        // Send WhatsApp
+        function sendWhatsApp(phone, name) {
+            $('#whatsappPhone').val(phone);
+            $('#whatsappTo').val(`${name} (${phone})`);
+            $('#whatsappModal').modal('show');
+        }
+
+        // Load message template
+        function loadTemplate() {
+            const template = $('#messageTemplate').val();
+            let message = '';
+            
+            switch(template) {
+                case 'points_update':
+                    message = "🎉 Great news! You've earned points for your recent work. Check your dashboard for details.";
+                    break;
+                case 'invoice_approved':
+                    message = "✅ Your invoice has been approved! Points have been added to your account.";
+                    break;
+                case 'invoice_rejected':
+                    message = "⚠️ Your invoice requires attention. Please check the admin comments in your dashboard.";
+                    break;
+                case 'reward_available':
+                    message = "🎁 New rewards are available! Redeem your points for exciting gifts in the portal.";
+                    break;
+                case 'monthly_bonus':
+                    message = "🏆 Monthly bonus points added! You're among our top performers this month.";
+                    break;
+            }
+            
+            $('#whatsappMessage').val(message);
+        }
+
+        // Send WhatsApp message
+        function sendWhatsAppMessage() {
+            const phone = $('#whatsappPhone').val();
+            const message = $('#whatsappMessage').val();
+            
+            fetch('/admin/send_whatsapp', {
+                method: 'POST',
+                body: new URLSearchParams({
+                    phone: phone,
+                    message: message
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                alert(data.message);
+                $('#whatsappModal').modal('hide');
+            });
+        }
+
+        // Save reward
+        function saveReward() {
+            alert('Rewards system coming soon! This feature will be available in the next update.');
+            $('#addRewardModal').modal('hide');
+        }
+    </script>
+</body>
+</html>
